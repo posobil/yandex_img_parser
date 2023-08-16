@@ -1,46 +1,39 @@
 import asyncio
-from aiogram import Bot, Dispatcher, F
+import logging
+from aiogram import Bot, Dispatcher
 from config_data.config import Config, load_config
-from aiogram.filters import Command, CommandStart
-from aiogram.types import Message, FSInputFile
-from service import get_links_list, get_finish_list_ya, get_screen_link, get_links_list_google
+from handlers import user_handlers
+
+# Инициализируем логгер
+logger = logging.getLogger(__name__)
 
 
+# Функция конфигурирования и запуска бота
+async def main():
+    # Конфигурируем логирование
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(filename)s:%(lineno)d #%(levelname)-8s '
+               '[%(asctime)s] - %(name)s - %(message)s')
 
-# Загружаем конфиг в переменную config
-config: Config = load_config()
+    # Выводим в консоль информацию о начале запуска бота
+    logger.info('Starting bot')
 
-# Инициализируем бот и диспетчер
-bot: Bot = Bot(token=config.tg_bot.token)
-dp: Dispatcher = Dispatcher()
+    # Загружаем конфиг в переменную config
+    config: Config = load_config()
 
+    # Инициализируем бот и диспетчер
+    bot: Bot = Bot(token=config.tg_bot.token,
+                   parse_mode='HTML')
+    dp: Dispatcher = Dispatcher()
 
+    # Регистриуем роутеры в диспетчере
+    dp.include_router(user_handlers.router)
 
-@dp.message(CommandStart())
-async def process_start_command(message: Message):
-    await message.answer(text='Пришли фото')
-
-
-
-@dp.message(F.photo)
-async def get_photo(message: Message):
-    await message.answer(text='Получаю список ссылок ⏳')
-    await bot.download(
-        message.photo[-1],
-        destination="/Users/dmitrii/Files/python/bots/yandex_img_parser/photo/photo.jpg")
-    await message.answer(text=f'yandex\n{get_finish_list_ya()}')
-    await message.answer_photo(photo=get_screen_link())
-    ph = FSInputFile("/Users/dmitrii/Files/python/bots/yandex_img_parser/photo/page_screen.png")
-    await message.answer_document(ph)
-    """print(get_links_list_google())
-    await message.answer_photo(photo=get_screen_link())"""
+    # Пропускаем накопившиеся апдейты и запускаем polling
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
-    dp.run_polling(bot)
-
-
-"""Для отправки файлов"""
-#from aiogram.types import Message, FSInputFile
-#ph = FSInputFile("/Users/dmitrii/Files/python/bots/yandex_img_parser/photo/page_screen.png")
-#await bot.send_photo(chat_id=message.chat.id, photo=ph)
+    asyncio.run(main())

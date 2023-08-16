@@ -13,6 +13,7 @@ def get_link_upload():
     s = response.json()
     ss = s['data']['url']
     link = 'https://tmpfiles.org/dl/' + ss[21:]
+    print(link)
     return link
 
 link = get_link_upload()
